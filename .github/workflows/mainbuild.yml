@@ -1,0 +1,94 @@
+name: APK bauen
+
+on:
+  # Neue Version veröffentlichen: Tag wie v1.0.0 pushen -> APK landet unter "Releases"
+  push:
+    tags: ["v*"]
+  # Testbuild per Knopfdruck unter "Actions" -> APK als Download am Workflow-Lauf
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Web-App ins Android-Projekt kopieren
+        run: npx cap sync android
+
+      - name: Version festlegen
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=0.0.${GITHUB_RUN_NUMBER}-test" >> "$GITHUB_OUTPUT"
+          fi
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Signaturschlüssel prüfen
+        id: sign
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KS_PASS" ] && [ -n "$KEY_ALIAS" ]; then
+            echo "$KEYSTORE_BASE64" | tr -d ' \r\n' | base64 --decode > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "mode=release" >> "$GITHUB_OUTPUT"
+            echo "Signaturschlüssel gefunden – baue signierte Release-APK."
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "::error::Für eine veröffentlichte Version (Tag) werden die Secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS und ANDROID_KEY_PASSWORD gebraucht. Siehe README, 'Weg A', Schritte 1 und 3."
+            exit 1
+          else
+            echo "mode=debug" >> "$GITHUB_OUTPUT"
+            echo "::warning::Keine Signatur-Secrets gefunden – baue eine Test-APK (Debug). Sie lässt sich installieren, spätere Versionen aber nicht darüber installieren. Für echte Versionen Secrets einrichten (README, 'Weg A')."
+          fi
+
+      - name: APK bauen
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          MODE=${{ steps.sign.outputs.mode }}
+          if [ "$MODE" = "release" ]; then TASK=assembleRelease; else TASK=assembleDebug; fi
+          ./gradlew $TASK --no-daemon \
+            -PappVersionCode=${{ steps.ver.outputs.code }} \
+            -PappVersionName=${{ steps.ver.outputs.name }}
+          SUFFIX=""; [ "$MODE" = "debug" ] && SUFFIX="-debug"
+          mv app/build/outputs/apk/$MODE/app-$MODE.apk \
+             "$GITHUB_WORKSPACE/Dividenden-Baukasten-${{ steps.ver.outputs.name }}$SUFFIX.apk"
+
+      - name: APK am Workflow-Lauf ablegen
+        uses: actions/upload-artifact@v6
+        with:
+          name: Dividenden-Baukasten-${{ steps.ver.outputs.name }}
+          path: Dividenden-Baukasten-*.apk
+
+      - name: Release veröffentlichen
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: Dividenden-Baukasten-*.apk
+          generate_release_notes: true
