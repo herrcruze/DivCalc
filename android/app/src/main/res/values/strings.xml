@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Dividenden-Baukasten</string>
+    <string name="title_activity_main">Dividenden-Baukasten</string>
+    <string name="package_name">de.dividenden.baukasten</string>
+    <string name="custom_url_scheme">de.dividenden.baukasten</string>
+</resources>

@@ -1,0 +1,9 @@
+{
+  "appId": "de.dividenden.baukasten",
+  "appName": "Dividenden-Baukasten",
+  "webDir": "www",
+  "android": { "backgroundColor": "#FAFBF8" },
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  }
+}

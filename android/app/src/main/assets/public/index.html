@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dividenden-Baukasten</title>
+<style>
+:root{
+  --paper:#FAFBF8; --sheet:#FFFFFF; --grid:#DCE2DA; --grid-strong:#BFC9BD;
+  --head:#EEF2EC; --ink:#1D2822; --muted:#5E6B63; --green:#1E6B4F; --green-soft:#DDEFE5;
+  --amber:#B7790F; --amber-soft:#FFF2D2; --blue:#2F5DA8; --blue-soft:#E4ECFA; --red:#B23A2E;
+  --focus:#1E6B4F;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#131815; --sheet:#1A201C; --grid:#2E3731; --grid-strong:#435047;
+    --head:#222A25; --ink:#E6ECE7; --muted:#9AA79F; --green:#5CC49A; --green-soft:#1F3A2E;
+    --amber:#F0B848; --amber-soft:#3A2F15; --blue:#86A9EA; --blue-soft:#1E2A40; --red:#F08A7E;
+    --focus:#5CC49A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131815; --sheet:#1A201C; --grid:#2E3731; --grid-strong:#435047;
+  --head:#222A25; --ink:#E6ECE7; --muted:#9AA79F; --green:#5CC49A; --green-soft:#1F3A2E;
+  --amber:#F0B848; --amber-soft:#3A2F15; --blue:#86A9EA; --blue-soft:#1E2A40; --red:#F08A7E;
+  --focus:#5CC49A; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:Roboto,"Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:15px;font-weight:600;margin:0 0 18px;color:var(--muted)}
+h1 b{color:var(--ink)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+/* goal sentence */
+.goal{font-size:clamp(24px,3.6vw,40px);line-height:1.25;font-weight:500;margin:0 0 6px;letter-spacing:-.01em}
+.goal input,.goal select{font:inherit;color:var(--green);background:transparent;border:0;
+  border-bottom:2px dashed var(--grid-strong);padding:0 2px;border-radius:0}
+.goal input{width:3.6em;text-align:right}
+.goal select{cursor:pointer;-webkit-appearance:none;appearance:none;padding-right:4px}
+.goal input:focus,.goal select:focus{border-bottom-color:var(--green);outline:none}
+.summary{display:flex;flex-wrap:wrap;gap:8px 36px;margin:18px 0 26px;align-items:flex-end}
+.stat .v{font-size:22px;font-weight:600}
+.stat .l{font-size:13px;color:var(--muted)}
+.progress{flex:1 1 260px;min-width:220px}
+.bar{height:10px;background:var(--head);border:1px solid var(--grid);border-radius:5px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--green);width:0;transition:width .3s}
+
+/* toolbar */
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.btn{font:inherit;font-size:14px;border:1px solid var(--grid-strong);background:var(--sheet);color:var(--ink);
+  padding:6px 12px;border-radius:4px;cursor:pointer}
+.btn:hover{border-color:var(--green)}
+.btn.primary{background:var(--green);border-color:var(--green);color:var(--sheet)}
+.tools .sp{flex:1}
+.legend{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:11px;height:11px;margin-right:5px;vertical-align:-1px;border:1px solid var(--grid-strong)}
+.legend .lm::before{background:var(--amber-soft);border-color:var(--amber)}
+.legend .le::before{background:var(--green-soft);border-color:var(--green)}
+.legend .lu::before{background:var(--sheet)}
+
+/* sheet */
+.sheet{overflow-x:auto;border:1px solid var(--grid-strong);background:var(--sheet);border-radius:2px}
+table{border-collapse:separate;border-spacing:0;min-width:1240px;width:100%}
+th,td{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:0;height:36px;white-space:nowrap;background:var(--sheet)}
+thead th{background:var(--head);font-family:"Roboto Condensed",Roboto,system-ui,sans-serif;font-weight:600;font-size:13px;color:var(--muted);padding:4px 8px;text-align:right}
+thead tr.letters th{height:22px;font-size:11px;font-weight:500;text-align:center;color:var(--muted);opacity:.8}
+thead tr.names th{color:var(--ink);line-height:1.2;white-space:normal;vertical-align:bottom}
+th.l,td.l{text-align:left}
+.rn{width:38px;min-width:38px;text-align:center;color:var(--muted);font-size:12px;background:var(--head)!important;position:sticky;left:0;z-index:2}
+.tk{position:sticky;left:38px;z-index:2;min-width:96px;border-right:1px solid var(--grid-strong)}
+thead .rn,thead .tk{z-index:3}
+td.cell input,td.cell select{width:100%;height:35px;border:0;background:transparent;color:inherit;font:inherit;padding:0 8px;text-align:right}
+td.cell select{text-align:left;cursor:pointer}
+td.cell input:focus,td.cell select:focus{outline:2px solid var(--focus);outline-offset:-2px;background:var(--sheet)}
+td.out{padding:0 8px;text-align:right}
+td.tk input{text-align:left;font-weight:600;text-transform:uppercase}
+td.name{padding:0 8px;min-width:200px;max-width:260px}
+td.name input{text-align:left;padding:0}
+.namewrap{display:flex;flex-direction:column;justify-content:center;min-height:35px}
+.miss{font-size:12px;color:var(--amber);line-height:1.3;padding-bottom:3px;white-space:normal}
+.miss a,.links a{color:inherit}
+.links{font-size:12px;color:var(--muted);line-height:1.3;padding-bottom:3px}
+.links a{margin-right:8px}
+td.missing{background:var(--amber-soft)}
+td.est{background:var(--blue-soft)}
+td.live{background:var(--green-soft)}
+td.est input{color:var(--blue)}
+td.strong{font-weight:600}
+td.goalcol{background:color-mix(in srgb,var(--green-soft) 55%,var(--sheet))}
+.months{display:flex;gap:2px;padding:0 6px}
+.months button{width:17px;height:22px;font:inherit;font-size:11px;border:1px solid var(--grid);background:transparent;color:var(--muted);border-radius:2px;cursor:pointer;padding:0}
+.months button.on{background:var(--green);border-color:var(--green);color:var(--sheet);font-weight:600}
+.del{border:0;background:transparent;color:var(--muted);font-size:18px;width:34px;height:34px;cursor:pointer}
+.del:hover{color:var(--red)}
+.estbtn{font:inherit;font-size:12px;border:1px solid var(--blue);color:var(--blue);background:transparent;border-radius:3px;padding:1px 6px;cursor:pointer;margin-right:6px}
+.estbtn[disabled]{opacity:.6;cursor:wait}
+tfoot td{background:var(--head);font-weight:600}
+tr.add td{background:var(--sheet)}
+tr.add input{color:var(--muted)}
+tr.add input:focus{color:var(--ink)}
+.w{display:flex;align-items:center}
+.w input{width:52px!important}
+.w small{color:var(--muted);font-size:12px;padding-right:8px;min-width:42px;text-align:right}
+
+/* calendar */
+.cal{margin-top:34px}
+.calhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;margin-bottom:12px}
+.calhead h2{font-size:20px;font-weight:600;margin:0}
+.seg{display:inline-flex;border:1px solid var(--grid-strong);border-radius:4px;overflow:hidden}
+.seg button{font:inherit;font-size:13px;border:0;background:var(--sheet);color:var(--ink);padding:5px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--green);color:var(--sheet)}
+.chart{position:relative;display:grid;grid-template-columns:repeat(12,1fr);gap:6px;height:220px;align-items:end;
+  border-bottom:1px solid var(--grid-strong);padding-top:22px}
+.col{display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}
+.col .b{background:var(--green);border-radius:2px 2px 0 0;min-height:1px;transition:height .3s}
+.col .val{font-size:12px;text-align:center;color:var(--ink);margin-bottom:3px;white-space:nowrap}
+.goalline{position:absolute;left:0;right:0;border-top:2px dashed var(--amber);pointer-events:none}
+.goalline span{position:absolute;right:0;top:-20px;font-size:12px;color:var(--amber);background:var(--paper);padding:0 4px}
+.mlabels{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;font-size:12px;color:var(--muted);text-align:center;margin-top:4px}
+.calnote{font-size:13px;color:var(--muted);margin-top:10px}
+
+/* settings */
+details{margin-top:34px;border-top:1px solid var(--grid);padding-top:14px}
+summary{cursor:pointer;font-weight:600}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 24px;margin-top:14px}
+.set label{display:block;font-size:13px;color:var(--muted)}
+.set .wide{grid-column:1/-1}
+.set input{font:inherit;width:100%;margin-top:3px;padding:6px 8px;border:1px solid var(--grid-strong);border-radius:4px;background:var(--sheet);color:var(--ink)}
+.foot{font-size:13px;color:var(--muted);margin-top:30px;max-width:72ch}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);
+  padding:8px 14px;border-radius:4px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:640px){.wrap{padding:18px 12px 48px}.summary{gap:8px 22px}.stat .v{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><b>Dividenden-Baukasten</b> &nbsp;Tabelle zum Planen deines Dividenden-Einkommens</h1>
+
+  <p class="goal">Ich möchte
+    <input id="gAmount" inputmode="decimal" aria-label="Zielbetrag in Euro"> €
+    <select id="gNet" aria-label="Brutto oder netto"><option value="0">brutto</option><option value="1">netto</option></select>
+    pro <select id="gPeriod" aria-label="Zeitraum"><option value="month">Monat</option><option value="year">Jahr</option></select>
+  </p>
+
+  <div class="summary">
+    <div class="stat"><div class="v" id="sNeedInv">–</div><div class="l">Investition für den Zielplan</div></div>
+    <div class="stat"><div class="v" id="sNow">–</div><div class="l" id="sNowL">Bestand heute, Ø pro Monat</div></div>
+    <div class="stat"><div class="v" id="sYield">–</div><div class="l">Ø Rendite deiner Auswahl</div></div>
+    <div class="progress"><div class="l" id="sProg" style="font-size:13px;color:var(--muted)">–</div><div class="bar"><i id="sBar"></i></div></div>
+  </div>
+
+  <div class="tools">
+    <button class="btn primary" id="takeAll" type="button">Ziel-Stückzahlen übernehmen</button>
+    <button class="btn" id="example" type="button">Beispiel laden</button>
+    <button class="btn" id="clear" type="button">Tabelle leeren</button>
+    <button class="btn" id="refreshAll" type="button">Live-Daten aktualisieren</button>
+    <button class="btn" id="csv" type="button">CSV kopieren</button>
+    <span class="sp"></span>
+    <div class="legend"><span class="lu">Datenbank oder eigene Eingabe</span><span class="le">Live geladen</span><span class="lm">Wert fehlt</span></div>
+  </div>
+
+  <div class="sheet" role="region" aria-label="Dividenden-Tabelle" tabindex="0">
+    <table id="tbl">
+      <thead>
+        <tr class="letters"><th class="rn"></th><th class="tk">A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th><th>L</th><th>M</th><th></th></tr>
+        <tr class="names">
+          <th class="rn"></th>
+          <th class="tk l">Kürzel</th>
+          <th class="l">Name</th>
+          <th>Stück</th>
+          <th>Kurs</th>
+          <th class="l">Währung</th>
+          <th>Dividende je Aktie / Jahr</th>
+          <th>Rendite</th>
+          <th class="l">Zahlmonate</th>
+          <th>Dividende p.a. (€)</th>
+          <th>Ø pro Monat (€)</th>
+          <th>Gewicht im Ziel</th>
+          <th>Ziel-Stück</th>
+          <th>Ziel-Investition (€)</th>
+          <th aria-label="Löschen"></th>
+        </tr>
+      </thead>
+      <tbody id="body"></tbody>
+      <tfoot id="foot"></tfoot>
+    </table>
+  </div>
+  <datalist id="dbList"></datalist>
+
+  <section class="cal">
+    <div class="calhead">
+      <h2>Dividendenkalender</h2>
+      <div class="seg" role="group" aria-label="Basis">
+        <button type="button" data-view="hold">Mein Bestand</button>
+        <button type="button" data-view="plan">Zielplan</button>
+      </div>
+      <span class="calnote" id="calSum"></span>
+    </div>
+    <div class="chart" id="chart"></div>
+    <div class="mlabels"><span>Jan</span><span>Feb</span><span>Mär</span><span>Apr</span><span>Mai</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Okt</span><span>Nov</span><span>Dez</span></div>
+    <p class="calnote">Bruttobeträge in Euro, verteilt auf die Zahlmonate. Die gestrichelte Linie zeigt den Monatsbedarf (brutto) für dein Ziel – Monate darunter sind Lücken, die du mit anderen Zahlmonaten füllen kannst.</p>
+  </section>
+
+  <details>
+    <summary>Live-Daten, Wechselkurse und Steuern</summary>
+    <div class="set">
+      <label class="wide">API-Schlüssel von Financial Modeling Prep (kostenlos, für Live-Kurse und Dividenden)<input id="apiKey" autocomplete="off" spellcheck="false" placeholder="Schlüssel einfügen"></label>
+      <div id="fxBox" style="display:contents"></div>
+      <label>Sparerpauschbetrag (€ / Jahr)<input id="taxFree" inputmode="decimal"></label>
+      <label>Steuersatz in % (Abgeltungsteuer + Soli)<input id="taxRate" inputmode="decimal"></label>
+    </div>
+    <p class="foot">Die Netto-Rechnung ist eine Näherung: Abgeltungsteuer mit Soli (26,375 %, mit Kirchensteuer etwas mehr) auf alles oberhalb des Sparerpauschbetrags. Ausländische Quellensteuer wird bei US-Aktien mit W-8BEN weitgehend angerechnet; bei Schweizer Aktien bleibt ohne Rückforderung ein Teil hängen. Keine Steuerberatung.</p>
+  </details>
+
+  <p class="foot">Ohne API-Schlüssel nutzt die App ihre eingebaute Datenbank mit Momentaufnahmen (ungefährer Stand 2025/26). Mit Schlüssel lädt sie Kurs, Währung und die Dividenden der letzten Zahlungen live von Financial Modeling Prep; der kostenlose Tarif deckt vor allem US-Werte ab und erlaubt 250 Abrufe am Tag (zwei pro Aktie). Deutsche Kürzel gibst du mit .DE ein, etwa ALV.DE. Jede Zelle lässt sich überschreiben. Keine Anlageberatung.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- Snapshot-Datenbank: [Kürzel, Name, Währung, Kurs, Dividende/Jahr, Zahlmonate, Yahoo-Symbol] ---------- */
+const ALL="1,2,3,4,5,6,7,8,9,10,11,12";
+const RAW=[
+ ["O","Realty Income","USD",57,3.23,ALL,"O"],
+ ["MAIN","Main Street Capital","USD",60,3.06,ALL,"MAIN"],
+ ["STAG","STAG Industrial","USD",37,1.49,ALL,"STAG"],
+ ["ADC","Agree Realty","USD",74,3.10,ALL,"ADC"],
+ ["JEPI","JPMorgan Equity Premium Income ETF","USD",57,4.60,ALL,"JEPI"],
+ ["KO","Coca-Cola","USD",70,2.04,"4,7,10,12","KO"],
+ ["PEP","PepsiCo","USD",145,5.69,"1,3,6,9","PEP"],
+ ["JNJ","Johnson & Johnson","USD",200,5.20,"3,6,9,12","JNJ"],
+ ["PG","Procter & Gamble","USD",150,4.23,"2,5,8,11","PG"],
+ ["MO","Altria","USD",58,4.24,"1,4,7,10","MO"],
+ ["PM","Philip Morris International","USD",150,5.88,"1,4,7,10","PM"],
+ ["ABBV","AbbVie","USD",220,6.92,"2,5,8,11","ABBV"],
+ ["VZ","Verizon","USD",40,2.76,"2,5,8,11","VZ"],
+ ["T","AT&T","USD",27,1.11,"2,5,8,11","T"],
+ ["XOM","Exxon Mobil","USD",115,4.12,"3,6,9,12","XOM"],
+ ["CVX","Chevron","USD",155,6.84,"3,6,9,12","CVX"],
+ ["MCD","McDonald’s","USD",300,7.44,"3,6,9,12","MCD"],
+ ["MSFT","Microsoft","USD",500,3.64,"3,6,9,12","MSFT"],
+ ["AAPL","Apple","USD",250,1.04,"2,5,8,11","AAPL"],
+ ["PFE","Pfizer","USD",25,1.72,"3,6,9,12","PFE"],
+ ["HD","Home Depot","USD",380,9.20,"3,6,9,12","HD"],
+ ["IBM","IBM","USD",280,6.72,"3,6,9,12","IBM"],
+ ["TXN","Texas Instruments","USD",180,5.44,"2,5,8,11","TXN"],
+ ["CSCO","Cisco","USD",70,1.64,"1,4,7,10","CSCO"],
+ ["NNN","NNN REIT","USD",42,2.40,"2,5,8,11","NNN"],
+ ["SCHD","Schwab US Dividend Equity ETF","USD",27,1.04,"3,6,9,12","SCHD"],
+ ["ALV","Allianz","EUR",360,15.40,"5","ALV.DE"],
+ ["MUV2","Munich Re","EUR",540,20.00,"5","MUV2.DE"],
+ ["HNR1","Hannover Rück","EUR",260,9.00,"5","HNR1.DE"],
+ ["BAS","BASF","EUR",44,2.25,"5","BAS.DE"],
+ ["DTE","Deutsche Telekom","EUR",30,0.90,"4","DTE.DE"],
+ ["SIE","Siemens","EUR",230,5.20,"2","SIE.DE"],
+ ["MBG","Mercedes-Benz Group","EUR",55,4.30,"5","MBG.DE"],
+ ["BMW","BMW","EUR",85,4.30,"5","BMW.DE"],
+ ["VNA","Vonovia","EUR",27,1.22,"6","VNA.DE"],
+ ["DHL","DHL Group","EUR",38,1.85,"5","DHL.DE"],
+ ["SAP","SAP","EUR",240,2.35,"5","SAP.DE"],
+ ["VHYL","Vanguard FTSE All-World High Dividend Yield ETF","EUR",70,2.10,"3,6,9,12","VHYL.AS"],
+ ["ULVR","Unilever","GBP",45,1.53,"3,6,9,12","ULVR.L"],
+ ["NESN","Nestlé","CHF",80,3.05,"4","NESN.SW"],
+ ["NOVN","Novartis","CHF",95,3.50,"3","NOVN.SW"],
+ ["ROG","Roche","CHF",260,9.70,"3","ROG.SW"]
+];
+const DB={};
+RAW.forEach(r=>{DB[r[0]]={ticker:r[0],name:r[1],cur:r[2],price:r[3],div:r[4],months:r[5].split(",").map(Number),yahoo:r[6]};});
+function lookup(s){
+  s=String(s||"").trim().toUpperCase();
+  if(!s) return null;
+  if(DB[s]) return DB[s];
+  const base=s.replace(/\.(DE|F|XETRA|L|SW|US|AS|PA)$/,"");
+  return DB[base]||null;
+}
+
+/* ---------- State ---------- */
+const KEY="divbaukasten.v1";
+const EXAMPLE=[["O",40],["KO",15],["ALV",3],["JNJ",5],["MO",25]];
+let uid=1;
+function newRow(ticker,shares){
+  const d=lookup(ticker);
+  const t=String(ticker||"").trim().toUpperCase();
+  return {id:uid++,ticker:d?d.ticker:t,name:d?d.name:"",shares:shares||0,
+    price:d?d.price:null,cur:d?d.cur:(/\.DE$|\.F$|\.AS$|\.PA$/.test(t)?"EUR":"USD"),
+    div:d?d.div:null,months:d?d.months.slice():[],weight:1,
+    yahoo:d?d.yahoo:t,src:d?{price:"db",div:"db",months:"db"}:{},note:""};
+}
+function defaults(){
+  return {goal:{amount:150,period:"month",net:false},fx:{USD:1.16,GBP:0.87,CHF:0.93,EUR:1},
+    tax:{free:1000,rate:26.375},view:"plan",apiKey:"",rows:EXAMPLE.map(e=>newRow(e[0],e[1]))};
+}
+let state=defaults();
+try{
+  const s=JSON.parse(localStorage.getItem(KEY)||"null");
+  if(s&&Array.isArray(s.rows)){state=Object.assign(defaults(),s);state.fx=Object.assign({USD:1.16,GBP:0.87,CHF:0.93,EUR:1},s.fx||{});state.rows.forEach(r=>{r.id=uid++;r.loading=false;r.src=r.src||{};r.months=r.months||[];});}
+}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+
+/* ---------- Helpers ---------- */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function parse(v){
+  v=String(v==null?"":v).trim().replace(/\s|€|\$/g,"");
+  if(!v) return null;
+  if(v.indexOf(",")>-1) v=v.replace(/\./g,"").replace(",",".");
+  const n=parseFloat(v);
+  return isFinite(n)?n:null;
+}
+const inp=n=>n==null?"":Number(n).toLocaleString("de-DE",{maximumFractionDigits:4,useGrouping:false});
+const eur=(n,d)=>n==null||!isFinite(n)?"–":n.toLocaleString("de-DE",{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d})+" €";
+const num=(n,d)=>n==null||!isFinite(n)?"–":n.toLocaleString("de-DE",{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
+const pct=n=>n==null||!isFinite(n)?"–":(n*100).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+" %";
+const MLET=["J","F","M","A","M","J","J","A","S","O","N","D"];
+const MNAME=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("show"),2600);}
+
+/* ---------- Rechnen ---------- */
+function taxRate(){return Math.max(0,Math.min(99,state.tax.rate||0))/100;}
+function applyTax(g){const f=state.tax.free||0,r=taxRate();return g<=f?g:f+(g-f)*(1-r);}
+function invTax(n){const f=state.tax.free||0,r=taxRate();return n<=f?n:f+(n-f)/(1-r);}
+function calc(){
+  const rate=c=>c==="EUR"?1:(state.fx[c]>0?state.fx[c]:null);
+  const rows=state.rows.map(r=>{
+    const fx=rate(r.cur);
+    const pe=fx&&r.price!=null&&r.price>0?r.price/fx:null;
+    const de=fx&&r.div!=null&&r.div>0?r.div/fx:null;
+    const ok=de!=null&&r.months.length>0;
+    const missing=[];
+    if(r.price==null) missing.push("Kurs");
+    if(r.div==null) missing.push("Dividende");
+    if(!r.months.length) missing.push("Zahlmonate");
+    if(!fx) missing.push("Wechselkurs "+r.cur);
+    return {r,pe,de,ok,missing,yld:pe&&de?de/pe:null,annual:de!=null?(r.shares||0)*de:null};
+  });
+  const wsum=rows.filter(x=>x.ok).reduce((s,x)=>s+Math.max(0,x.r.weight||0),0);
+  const goalYear=(state.goal.amount||0)*(state.goal.period==="month"?12:1);
+  const grossNeeded=state.goal.net?invTax(goalYear):goalYear;
+  let tInv=0,tInvOk=true,planGross=0,nowGross=0,nowInv=0;
+  const mHold=new Array(12).fill(0),mPlan=new Array(12).fill(0);
+  rows.forEach(x=>{
+    x.share=x.ok&&wsum>0?Math.max(0,x.r.weight||0)/wsum:0;
+    x.target=x.ok&&x.share>0?Math.ceil(grossNeeded*x.share/x.de):(x.ok?0:null);
+    x.tinv=x.target!=null&&x.pe!=null?x.target*x.pe:null;
+    if(x.target&&x.tinv==null) tInvOk=false;
+    if(x.tinv!=null) tInv+=x.tinv;
+    if(x.ok){
+      planGross+=x.target*x.de; nowGross+=(x.r.shares||0)*x.de;
+      const per=x.de/x.r.months.length;
+      x.r.months.forEach(m=>{mHold[m-1]+=(x.r.shares||0)*per;mPlan[m-1]+=x.target*per;});
+    }
+    if(x.pe!=null) nowInv+=(x.r.shares||0)*x.pe;
+  });
+  return {rows,grossNeeded,goalYear,tInv,tInvOk,planGross,nowGross,nowInv,mHold,mPlan,wsum};
+}
+
+/* ---------- Rendern ---------- */
+function linksFor(r){
+  const q=encodeURIComponent(r.ticker);
+  const y=encodeURIComponent(r.yahoo||r.ticker);
+  return '<a href="https://finance.yahoo.com/quote/'+y+'/">Yahoo</a>'+
+    '<a href="https://www.finanzen.net/suchergebnis.asp?_search='+q+'">finanzen.net</a>'+
+    '<a href="https://www.google.com/search?q='+encodeURIComponent(r.ticker+" Dividende pro Aktie Zahltermine")+'">Google</a>';
+}
+function cls(r,f,missing){return "cell"+(missing?" missing":"")+(r.src[f]==="live"?" live":"");}
+function render(){
+  const c=calc();
+  const body=c.rows.map((x,i)=>{
+    const r=x.r;
+    const mbtn=MLET.map((l,k)=>'<button type="button" data-act="month" data-m="'+(k+1)+'" class="'+(r.months.indexOf(k+1)>-1?"on":"")+'" aria-pressed="'+(r.months.indexOf(k+1)>-1)+'" title="'+MNAME[k]+'">'+l+'</button>').join("");
+    let nameExtra="";
+    if(x.missing.length){
+      nameExtra='<div class="miss">Fehlt: '+esc(x.missing.join(", "))+'. '+
+        (state.apiKey?'<button type="button" class="estbtn" data-act="est"'+(r.loading?" disabled":"")+'>'+(r.loading?"Lädt …":"Live laden")+'</button>':'')+
+        'Nachschlagen: '+linksFor(r)+'</div>';
+    } else if(r.loading){
+      nameExtra='<div class="links">Lädt Live-Daten …</div>';
+    } else if(r.liveAt){
+      nameExtra='<div class="links">Live vom '+new Date(r.liveAt).toLocaleDateString("de-DE")+'</div>';
+    }
+    if(r.note) nameExtra+='<div class="miss">'+esc(r.note)+'</div>';
+    return '<tr data-id="'+r.id+'">'+
+      '<td class="rn">'+(i+1)+'</td>'+
+      '<td class="cell tk"><input data-f="ticker" value="'+esc(r.ticker)+'" aria-label="Kürzel" spellcheck="false"></td>'+
+      '<td class="name"><div class="namewrap"><input class="nm" data-f="name" value="'+esc(r.name)+'" placeholder="Name eintragen" aria-label="Name" style="border:0;background:transparent;color:inherit;font:inherit;width:100%;height:28px">'+nameExtra+'</div></td>'+
+      '<td class="cell strong"><input data-f="shares" inputmode="decimal" value="'+inp(r.shares)+'" aria-label="Stückzahl"></td>'+
+      '<td class="'+cls(r,"price",r.price==null)+'" data-c="price"><input data-f="price" inputmode="decimal" value="'+inp(r.price)+'" placeholder="Kurs?" aria-label="Kurs"></td>'+
+      '<td class="cell"><select data-f="cur" aria-label="Währung">'+Object.keys(state.fx).concat(state.fx[r.cur]==null?[r.cur]:[]).map(k=>'<option'+(k===r.cur?" selected":"")+'>'+k+'</option>').join("")+'</select></td>'+
+      '<td class="'+cls(r,"div",r.div==null)+'" data-c="div"><input data-f="div" inputmode="decimal" value="'+inp(r.div)+'" placeholder="Dividende?" aria-label="Dividende je Aktie pro Jahr"></td>'+
+      '<td class="out" data-o="yld"></td>'+
+      '<td class="'+(r.months.length?"":"missing")+(r.src.months==="live"?" live":"")+'"><div class="months">'+mbtn+'</div></td>'+
+      '<td class="out strong" data-o="annual"></td>'+
+      '<td class="out" data-o="month"></td>'+
+      '<td class="cell goalcol"><div class="w"><input data-f="weight" inputmode="decimal" value="'+inp(r.weight)+'" aria-label="Gewicht"><small data-o="share"></small></div></td>'+
+      '<td class="out strong goalcol" data-o="target"></td>'+
+      '<td class="out goalcol" data-o="tinv"></td>'+
+      '<td><button class="del" type="button" data-act="del" aria-label="Zeile löschen" title="Zeile löschen">×</button></td>'+
+    '</tr>';
+  }).join("");
+  $("body").innerHTML=body;
+  $("foot").innerHTML=
+    '<tr class="add"><td class="rn">'+(state.rows.length+1)+'</td><td class="cell tk" colspan="2" style="position:sticky;left:38px"><input id="addInput" list="dbList" placeholder="+ Kürzel eingeben, Enter" aria-label="Neues Kürzel" spellcheck="false" style="text-align:left;font-weight:500"></td><td colspan="12" style="padding:0 8px;color:var(--muted);font-size:13px">z. B. KO, O, ALV, MUV2 – oder jedes andere Kürzel, fehlende Werte trägst du selbst ein</td></tr>'+
+    '<tr><td class="rn">Σ</td><td class="tk" style="padding:0 8px">Summe</td><td></td><td class="out" id="fShares"></td><td class="out" colspan="2" id="fInv" style="text-align:right"></td><td></td><td class="out" id="fYld"></td><td></td><td class="out" id="fAnnual"></td><td class="out" id="fMonth"></td><td class="goalcol"></td><td class="goalcol"></td><td class="out goalcol" id="fTinv"></td><td></td></tr>';
+  recalc(c);
+}
+function recalc(c){
+  c=c||calc();
+  c.rows.forEach(x=>{
+    const tr=document.querySelector('tr[data-id="'+x.r.id+'"]');
+    if(!tr) return;
+    const set=(k,v)=>{const el=tr.querySelector('[data-o="'+k+'"]');if(el) el.textContent=v;};
+    set("yld",pct(x.yld));
+    set("annual",x.annual==null?"–":eur(x.annual));
+    set("month",x.annual==null?"–":eur(x.annual/12));
+    set("share",x.ok?num(x.share*100,0)+" %":"");
+    set("target",x.target==null?"–":num(x.target));
+    set("tinv",x.tinv==null?(x.target?"Kurs fehlt":"–"):eur(x.tinv,0));
+    tr.querySelector('[data-c="price"]').classList.toggle("missing",x.r.price==null);
+    tr.querySelector('[data-c="div"]').classList.toggle("missing",x.r.div==null);
+  });
+  const totShares=state.rows.reduce((s,r)=>s+(r.shares||0),0);
+  const ff=(id,v)=>{const el=$(id);if(el) el.textContent=v;};
+  ff("fShares",num(totShares));
+  ff("fInv",c.nowInv?"Bestand "+eur(c.nowInv,0):"");
+  ff("fYld",c.nowInv?pct(c.nowGross/c.nowInv):"–");
+  ff("fAnnual",eur(c.nowGross));
+  ff("fMonth",eur(c.nowGross/12));
+  ff("fTinv",eur(c.tInv,0)+(c.tInvOk?"":" +"));
+
+  const per=state.goal.period==="month";
+  const netNow=applyTax(c.nowGross);
+  const showNow=state.goal.net?netNow:c.nowGross;
+  $("sNeedInv").textContent=c.wsum>0?eur(c.tInv,0)+(c.tInvOk?"":" +"):"–";
+  $("sNow").textContent=eur(per?showNow/12:showNow);
+  $("sNowL").textContent="Bestand heute, "+(state.goal.net?"netto ":"brutto ")+(per?"Ø pro Monat":"pro Jahr");
+  $("sYield").textContent=c.tInv>0?pct(c.planGross/c.tInv):"–";
+  const prog=c.goalYear>0?(state.goal.net?netNow:c.nowGross)/c.goalYear:0;
+  $("sBar").style.width=Math.min(100,prog*100)+"%";
+  $("sProg").textContent=c.goalYear>0?(num(prog*100,0)+" % deines Ziels erreicht"+(prog<1?" – es fehlen "+eur((c.goalYear-(state.goal.net?netNow:c.nowGross))/(per?12:1))+(per?" im Monat":" im Jahr"):"")):"Trag einen Zielbetrag ein";
+  drawChart(c);
+}
+function drawChart(c){
+  const data=state.view==="plan"?c.mPlan:c.mHold;
+  const goalM=c.grossNeeded/12;
+  const max=Math.max(goalM,...data,1)*1.08;
+  const chart=$("chart");
+  chart.innerHTML=data.map((v,i)=>'<div class="col" title="'+MNAME[i]+': '+eur(v)+'"><div class="val">'+(v>0?num(v,0)+" €":"")+'</div><div class="b" style="height:'+(v/max*100*0.88)+'%"></div></div>').join("")+
+    (goalM>0?'<div class="goalline" style="bottom:'+(goalM/max*88)+'%"><span>Ziel Ø '+num(goalM,0)+' €</span></div>':'');
+  const total=data.reduce((a,b)=>a+b,0);
+  const low=data.filter(v=>v<goalM*0.999).length;
+  $("calSum").textContent=eur(total,0)+" im Jahr brutto"+(goalM>0?(low?", "+low+" Monat"+(low>1?"e":"")+" unter dem Ziel-Durchschnitt":", jeder Monat über dem Ziel-Durchschnitt"):"");
+  document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===state.view)));
+}
+
+/* ---------- Ereignisse ---------- */
+const tbl=$("tbl");
+const rowOf=el=>{const tr=el.closest("tr[data-id]");return tr?state.rows.find(r=>r.id===Number(tr.dataset.id)):null;};
+tbl.addEventListener("input",e=>{
+  const t=e.target,r=rowOf(t);if(!r||!t.dataset.f) return;
+  const f=t.dataset.f;
+  if(f==="name"){r.name=t.value;save();return;}
+  if(f==="ticker"){return;}
+  if(f==="cur"){return;}
+  r[f]=parse(t.value);
+  if(f==="shares"&&r.shares==null) r.shares=0;
+  if(f==="weight"&&r.weight==null) r.weight=0;
+  if(f==="price"||f==="div") r.src[f]="user";
+  t.closest("td").classList.remove("live");
+  recalc();save();
+});
+tbl.addEventListener("change",e=>{
+  const t=e.target,r=rowOf(t);if(!r) return;
+  if(t.dataset.f==="cur"){r.cur=t.value;recalc();save();}
+  else if(t.dataset.f==="ticker"){
+    const v=t.value.trim().toUpperCase();
+    if(v&&v!==r.ticker){
+      const fresh=newRow(v,r.shares);fresh.id=r.id;fresh.weight=r.weight;
+      Object.assign(r,fresh);render();save();
+    }
+  } else if(t.dataset.f&&t.dataset.f!=="name"){
+    const n=parse(t.value);t.value=inp(n==null&&(t.dataset.f==="shares"||t.dataset.f==="weight")?0:n);
+    if(t.dataset.f==="price"||t.dataset.f==="div"){render();}
+  }
+});
+tbl.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b) return;
+  const r=rowOf(b);if(!r) return;
+  const a=b.dataset.act;
+  if(a==="del"){state.rows=state.rows.filter(x=>x!==r);render();save();}
+  else if(a==="month"){
+    const m=Number(b.dataset.m),i=r.months.indexOf(m);
+    if(i>-1) r.months.splice(i,1); else {r.months.push(m);r.months.sort((x,y)=>x-y);}
+    r.src.months="user";render();save();
+  }
+  else if(a==="est"){liveLoad(r);}
+});
+tbl.addEventListener("keydown",e=>{
+  if(e.target.id==="addInput"&&e.key==="Enter"){
+    e.preventDefault();
+    const v=e.target.value.split(/\s/)[0].trim();
+    if(!v) return;
+    const nr=newRow(v,0);state.rows.push(nr);render();save();
+    if(state.apiKey) liveLoad(nr);
+    else if(!lookup(v)) toast("„"+nr.ticker+"“ ist nicht in der Datenbank – die gelben Felder kannst du selbst ausfüllen.");
+    const ai=$("addInput");if(ai) ai.focus();
+  }
+});
+
+function bindGoal(){
+  $("gAmount").value=inp(state.goal.amount);
+  $("gNet").value=state.goal.net?"1":"0";
+  $("gPeriod").value=state.goal.period;
+  $("gAmount").addEventListener("input",e=>{state.goal.amount=parse(e.target.value)||0;recalc();save();});
+  $("gNet").addEventListener("change",e=>{state.goal.net=e.target.value==="1";recalc();save();});
+  $("gPeriod").addEventListener("change",e=>{state.goal.period=e.target.value;recalc();save();});
+  renderFx();
+  $("fxBox").addEventListener("input",e=>{const k=e.target.dataset.fx;const n=parse(e.target.value);if(k&&n>0){state.fx[k]=n;recalc();save();}});
+  $("apiKey").value=state.apiKey||"";
+  $("apiKey").addEventListener("change",e=>{state.apiKey=e.target.value.trim();save();render();toast(state.apiKey?"Schlüssel gespeichert. Tippe „Live-Daten aktualisieren“.":"Schlüssel entfernt – die App nutzt die eingebaute Datenbank.");});
+  $("refreshAll").addEventListener("click",refreshAll);
+  $("taxFree").value=inp(state.tax.free);
+  $("taxRate").value=inp(state.tax.rate);
+  $("taxFree").addEventListener("input",e=>{state.tax.free=parse(e.target.value)||0;recalc();save();});
+  $("taxRate").addEventListener("input",e=>{const n=parse(e.target.value);if(n!=null){state.tax.rate=n;recalc();save();}});
+  document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{state.view=b.dataset.view;drawChart(calc());save();}));
+  $("takeAll").addEventListener("click",()=>{
+    const c=calc();let n=0;
+    c.rows.forEach(x=>{if(x.target!=null){x.r.shares=x.target;n++;}});
+    render();save();toast(n?"Ziel-Stückzahlen in die Spalte „Stück“ übernommen.":"Keine Zeile mit vollständigen Werten.");
+  });
+  $("example").addEventListener("click",()=>{state.rows=EXAMPLE.map(e=>newRow(e[0],e[1]));render();save();});
+  $("clear").addEventListener("click",()=>{if(!state.rows.length||confirm("Alle Zeilen löschen?")){state.rows=[];render();save();const ai=$("addInput");if(ai) ai.focus();}});
+  $("dbList").innerHTML=RAW.map(r=>'<option value="'+esc(r[0])+'">'+esc(r[1])+'</option>').join("");
+}
+
+/* ---------- Live-Daten (Financial Modeling Prep) ---------- */
+const CURNAME={USD:"US-Dollar",GBP:"Britische Pfund",CHF:"Schweizer Franken",CAD:"Kanadische Dollar",AUD:"Australische Dollar",DKK:"Dänische Kronen",NOK:"Norwegische Kronen",SEK:"Schwedische Kronen",JPY:"Yen",HKD:"Hongkong-Dollar"};
+function renderFx(){
+  $("fxBox").innerHTML=Object.keys(state.fx).filter(k=>k!=="EUR").map(k=>
+    '<label>1 € = … '+esc(CURNAME[k]||k)+'<input data-fx="'+esc(k)+'" inputmode="decimal" value="'+inp(state.fx[k])+'" placeholder="Kurs eintragen"></label>').join("");
+}
+async function fmp(path,sym){
+  const u="https://financialmodelingprep.com/stable/"+path+"?symbol="+encodeURIComponent(sym)+"&apikey="+encodeURIComponent(state.apiKey);
+  const res=await fetch(u);
+  if(res.status===401||res.status===403||res.status===402) throw {code:"plan"};
+  if(res.status===429) throw {code:"limit"};
+  if(!res.ok) throw {code:"http"};
+  const j=await res.json();
+  if(j&&!Array.isArray(j)&&(j["Error Message"]||j.error)){
+    const m=String(j["Error Message"]||j.error);
+    throw {code:/limit/i.test(m)?"limit":/premium|subscription|plan|exclusive/i.test(m)?"plan":"http"};
+  }
+  return j;
+}
+const FREQ={monthly:12,quarterly:4,"semi-annual":2,semiannual:2,annual:1,yearly:1};
+async function liveLoad(r){
+  if(!state.apiKey||r.loading) return false;
+  r.loading=true;r.note="";render();
+  let ok=false;
+  try{
+    const sym=(r.yahoo&&r.yahoo!==r.ticker&&lookup(r.ticker))?r.yahoo:r.ticker;
+    const [prof,divs]=await Promise.all([fmp("profile",sym),fmp("dividends",sym).catch(()=>[])]);
+    const p=Array.isArray(prof)?prof[0]:null;
+    if(!p) throw {code:"none"};
+    let cur=String(p.currency||r.cur||"USD"),scale=1;
+    if(cur==="GBp"||cur==="GBX"){cur="GBP";scale=0.01;}
+    cur=cur.toUpperCase();
+    if(state.fx[cur]===undefined){state.fx[cur]=null;renderFx();}
+    if(p.companyName) r.name=String(p.companyName).slice(0,80);
+    if(Number(p.price)>0){r.price=Math.round(Number(p.price)*scale*10000)/10000;r.src.price="live";}
+    r.cur=cur;
+    const list=(Array.isArray(divs)?divs:[]).filter(d=>Number(d.dividend)>0&&d.date).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    if(list.length){
+      const latest=new Date(list[0].date);
+      const n=FREQ[String(list[0].frequency||"").toLowerCase()];
+      const pick=n?list.slice(0,n):list.filter(d=>(latest-new Date(d.date))<360*864e5);
+      const sum=pick.reduce((s,d)=>s+Number(d.dividend),0)*scale;
+      r.div=Math.round(sum*10000)/10000;r.src.div="live";
+      const ms=[...new Set(pick.map(d=>new Date(d.paymentDate||d.date).getMonth()+1).filter(m=>m>=1&&m<=12))].sort((a,b)=>a-b);
+      if(ms.length){r.months=ms;r.src.months="live";}
+      if((Date.now()-latest)>540*864e5) r.note="Letzte Dividende liegt über 18 Monate zurück – zahlt der Wert noch?";
+    } else if(r.div==null){
+      r.note="Keine Dividendendaten gefunden – Wert zahlt evtl. keine Dividende, bitte selbst prüfen.";
+    }
+    if(state.fx[cur]==null) r.note="Wechselkurs für "+cur+" fehlt – bitte in den Einstellungen eintragen.";
+    r.liveAt=Date.now();ok=true;
+  }catch(e){
+    const c=e&&e.code;
+    r.note=c==="plan"?"Dein FMP-Tarif liefert für dieses Kürzel keine Daten (oft bei Nicht-US-Werten) – Datenbankwerte bleiben, bitte prüfen.":
+      c==="limit"?"Tageslimit der API erreicht – morgen erneut versuchen.":
+      c==="none"?"Kürzel bei FMP nicht gefunden. Deutsche Werte mit .DE eingeben, z. B. ALV.DE.":
+      "Laden fehlgeschlagen – Internetverbindung und API-Schlüssel prüfen.";
+  }
+  r.loading=false;render();save();
+  return ok;
+}
+async function refreshAll(){
+  if(!state.apiKey){toast("Trag zuerst unter „Live-Daten, Wechselkurse und Steuern“ deinen API-Schlüssel ein.");document.querySelector("details").open=true;$("apiKey").focus();return;}
+  const b=$("refreshAll");b.disabled=true;let n=0;
+  for(const r of state.rows.slice()){
+    b.textContent="Lädt "+(++n)+"/"+state.rows.length+" …";
+    await liveLoad(r);
+    if(state.rows.some(x=>x.note&&/Tageslimit/.test(x.note))) break;
+  }
+  b.disabled=false;b.textContent="Live-Daten aktualisieren";
+  toast("Live-Daten aktualisiert.");
+}
+function csv(){
+  const c=calc();
+  const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const n=v=>v==null||!isFinite(v)?"":String(Math.round(v*100)/100).replace(".",",");
+  const lines=[["Kürzel","Name","Stück","Kurs","Währung","Dividende je Aktie/Jahr","Rendite %","Zahlmonate","Dividende p.a. EUR","Ø Monat EUR","Ziel-Stück","Ziel-Investition EUR"].map(q).join(";")];
+  c.rows.forEach(x=>{const r=x.r;lines.push([q(r.ticker),q(r.name),n(r.shares),n(r.price),q(r.cur),n(r.div),n(x.yld==null?null:x.yld*100),q(r.months.join(" ")),n(x.annual),n(x.annual==null?null:x.annual/12),n(x.target),n(x.tinv)].join(";"));});
+  return "\ufeff"+lines.join("\r\n");
+}
+$("csv").addEventListener("click",async()=>{
+  try{await navigator.clipboard.writeText(csv().replace(/^\ufeff/,""));toast("Tabelle als CSV kopiert – z. B. in Excel oder Google Sheets einfügen.");}
+  catch(e){toast("Kopieren nicht möglich.");}
+});
+
+bindGoal();
+render();
+
+})();
+</script>
+</body>
+</html>
